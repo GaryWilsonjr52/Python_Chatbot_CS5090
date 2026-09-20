@@ -8,8 +8,8 @@ from tokenizers.trainers import BpeTrainer
 from tokenizers.pre_tokenizers import ByteLevel
 
 # Define the path to dataset and output
-dataset_dir = 'files'
-output_dir = '/PythonChatbot_CS5090/training_data'
+dataset_dir = os.path.abspath(__file__) + 'files'
+print(dataset_dir)
 os.makedirs(dataset_dir, exist_ok=True)
 
 # 1. Read all Python files
@@ -49,7 +49,7 @@ trainer = BpeTrainer(
 tokenizer.train_from_iterator(data_chunks, trainer=trainer)
 
 # Save the tokenizer configuration so you can decode model outputs later
-tokenizer_path = os.path.join(output_dir, 'tokenizer.json')
+tokenizer_path = os.path.join(os.path.abspath(__file__), 'tokenizer.json')
 tokenizer.save(tokenizer_path)
 print(f"Saved tokenizer config to {tokenizer_path}")
 
