@@ -7,9 +7,9 @@ from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
 from tokenizers.pre_tokenizers import ByteLevel
 
-# Define the path to dataset and output
-dataset_dir = os.path.abspath(__file__) + 'files'
-print(dataset_dir)
+# Define the path to dataset, __file__ is a refernce to the script location
+dataset_dir = os.path.join(os.path.dirname(__file__), 'files')
+print(f"dataset directory: {dataset_dir}")
 os.makedirs(dataset_dir, exist_ok=True)
 
 # 1. Read all Python files
@@ -49,7 +49,7 @@ trainer = BpeTrainer(
 tokenizer.train_from_iterator(data_chunks, trainer=trainer)
 
 # Save the tokenizer configuration so you can decode model outputs later
-tokenizer_path = os.path.join(os.path.abspath(__file__), 'tokenizer.json')
+tokenizer_path = os.path.join(os.path.dirname(__file__), 'tokenizer.json')
 tokenizer.save(tokenizer_path)
 print(f"Saved tokenizer config to {tokenizer_path}")
 
@@ -70,15 +70,15 @@ print(f"Val has {len(val_ids):,} tokens")
 train_ids = np.array(train_ids, dtype=np.uint16)
 val_ids = np.array(val_ids, dtype=np.uint16)
 
-train_ids.tofile(os.path.join(os.path.abspath(__file__), 'train.bin'))
-val_ids.tofile(os.path.join(os.path.abspath(__file__), 'val.bin'))
+train_ids.tofile(os.path.join(os.path.dirname(__file__), 'train.bin'))
+val_ids.tofile(os.path.join(os.path.dirname(__file__), 'val.bin'))
 
 # 6. Save meta.pkl for nanoGPT's train.py
 # NanoGPT's train.py looks for vocab_size in meta.pkl
 meta = {
     'vocab_size': 8192,
 }
-with open(os.path.join(os.path.abspath(__file__), 'meta.pkl'), 'wb') as f:
+with open(os.path.join(os.path.dirname(__file__), 'meta.pkl'), 'wb') as f:
     pickle.dump(meta, f)
     
 print("Preparation complete! train.bin, val.bin, and meta.pkl saved.")
