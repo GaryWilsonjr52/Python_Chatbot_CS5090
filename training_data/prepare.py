@@ -25,14 +25,14 @@ for file_path in python_files:
     except Exception as e:
         print(f"Skipping {file_path}: {e}")
 
-# Combine all code with newlines separating files
-full_text = "\n\n".join(data_chunks)
+# Combine all code with [EOF] separating files
+full_text = "\n\n[EOF]\n\n".join(data_chunks)
 print(f"Length of dataset in characters: {len(full_text):,}")
 
 # 2. Initialize and Train a Custom BPE Tokenizer
 print("Training custom BPE tokenizer (vocab_size=8192)...")
-tokenizer = Tokenizer(BPE(unk_token="[UNK]")) #UNK is for a fallback if any data is unrecognizeable.
-tokenizer.pre_tokenizer = ByteLevel(add_prefix_space=False) #convert to bytes to prevent "out of vocabulary" error
+tokenizer = Tokenizer(BPE(unk_token="[UNK]"))
+tokenizer.pre_tokenizer = ByteLevel(add_prefix_space=False)
 
 # Configure the trainer for 8192 tokens
 # special tokens are for:
@@ -41,7 +41,7 @@ tokenizer.pre_tokenizer = ByteLevel(add_prefix_space=False) #convert to bytes to
 # BOS and EOS are used for telling the model where a file starts and stops
 trainer = BpeTrainer(
     vocab_size=8192, 
-    special_tokens=["[UNK]", "[PAD]", "[BOS]", "[EOS]"],
+    special_tokens=["[UNK]", "[PAD]", "[BOS]", "[EOS]", "[EOF]"],
     show_progress=True
 )
 

@@ -1,3 +1,0 @@
-pandas
-instabot
-requests

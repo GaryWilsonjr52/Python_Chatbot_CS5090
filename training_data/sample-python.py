@@ -129,12 +129,24 @@ attempt = 0
 
 print(f"Generating {num_samples} syntactically valid Python samples...\n")
 
+# Get the token ID for [EOF] from the loaded custom tokenizer
+eof_id = tokenizer.token_to_id("[EOF]") if 'tokenizer' in globals() and tokenizer else None
+
+print(f"Generating {num_samples} syntactically valid Python samples...\n")
+
 with torch.no_grad():
     with ctx:
         while len(valid_samples) < num_samples and attempt < max_attempts:
             attempt += 1
             y = model.generate(x, max_new_tokens, temperature=temperature, top_k=top_k)
-            raw_code = decode(y[0].tolist())
+            tokens_list = y[0].tolist()
+
+            # Truncate token sequence if [EOF] token was generated
+            if eof_id is not None and eof_id in tokens_list[len(start_ids):]:
+                eof_index = tokens_list.index(eof_id, len(start_ids))
+                tokens_list = tokens_list[:eof_index]
+
+            raw_code = decode(tokens_list)
 
             cleaned_code, is_valid = clean_and_trim_code(raw_code)
 

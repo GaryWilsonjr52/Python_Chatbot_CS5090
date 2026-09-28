@@ -1,9 +1,0 @@
-tensorflow
-tensorflow.keras
-numpy
-os
-pickle
-tqdm.notebook
-nltk
-PIL
-matplotlib

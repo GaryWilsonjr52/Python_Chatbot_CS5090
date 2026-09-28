@@ -1,6 +1,0 @@
-### QR Code Generator
-A simple program to generate QR codes. Install `qrcode` library before running the program.
-
-```
-pip install qrcode
-```
