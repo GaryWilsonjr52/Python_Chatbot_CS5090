@@ -1,4 +1,3 @@
-%%writefile /content/Python_Chatbot_CS5090/training_data/prepare.py
 import os
 import ast
 import re
