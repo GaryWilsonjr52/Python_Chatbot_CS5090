@@ -142,6 +142,36 @@ The notebook clones these repositories from their default branches. Their conten
 
 In addition to the local repositories, `training_data/prepare.py` streams the training split of [`codeparrot/codeparrot-clean`](https://huggingface.co/datasets/codeparrot/codeparrot-clean) through the Hugging Face `datasets` library. The script extracts additional Pandas-related functions until it reaches a target of 400,000,000 characters (the script comments estimate this at roughly 100 million tokens). The stream can fail or be interrupted, so inspect the preparation output and record the final counts rather than assuming the full remote corpus was collected.
 
+### Third-party source licenses
+
+The table below records the license information visible in each upstream repository or its license/metadata file when checked on **October 31, 2026**. The licenses apply to the upstream source projects, not automatically to this repository as a whole. The notebook clones current default branches, so the license and source content at the exact commit used for a training run should be saved alongside the experiment.
+
+| Source repository | License found | License / source reference |
+|---|---|---|
+| [leetlab11/Introduction-to-Pandas](https://github.com/leetlab11/Introduction-to-Pandas) | **No explicit repository license found** | [Repository root](https://github.com/leetlab11/Introduction-to-Pandas). No `LICENSE` file or license declaration was visible in the root listing when checked. |
+| [Aayush-kotwani/Pandas-masterclass](https://github.com/Aayush-kotwani/Pandas-masterclass) | **No explicit repository license found** | [Repository root](https://github.com/Aayush-kotwani/Pandas-masterclass). No `LICENSE` file or license declaration was visible in the root listing when checked. |
+| [codebasics/py](https://github.com/codebasics/py) | **No explicit repository license found** | [Repository root](https://github.com/codebasics/py). No `LICENSE` file or license declaration was visible in the root listing when checked. |
+| [guipsamora/pandas_exercises](https://github.com/guipsamora/pandas_exercises) | **BSD 3-Clause** | [LICENSE](https://github.com/guipsamora/pandas_exercises/blob/master/LICENSE) |
+| [jvns/pandas-cookbook](https://github.com/jvns/pandas-cookbook) | **CC BY-SA 4.0** | [License statement in README](https://github.com/jvns/pandas-cookbook#license) |
+| [stefan-jansen/zipline-reloaded](https://github.com/stefan-jansen/zipline-reloaded) | **Apache License 2.0** | [LICENSE](https://github.com/stefan-jansen/zipline-reloaded/blob/main/LICENSE) and [package metadata](https://github.com/stefan-jansen/zipline-reloaded/blob/main/pyproject.toml) |
+| [twopirllc/pandas-ta](https://github.com/twopirllc/pandas-ta) | **MIT**| [LICENSE](https://github.com/aarigs/pandas-ta?tab=MIT-1-ov-file) |
+| [polakowo/vectorbt](https://github.com/polakowo/vectorbt) | **Apache License 2.0 + Commons Clause** | [LICENSE.md](https://github.com/polakowo/vectorbt/blob/master/LICENSE.md). The Commons Clause adds a restriction on selling the software or a product/service whose value derives substantially from it. |
+| [ranaroussi/yfinance](https://github.com/ranaroussi/yfinance) | **Apache License 2.0** | [LICENSE.txt](https://github.com/ranaroussi/yfinance/blob/main/LICENSE.txt); the [project README](https://github.com/ranaroussi/yfinance#legal-stuff) identifies the Apache license. |
+| [quantopian/pyfolio](https://github.com/quantopian/pyfolio) | **Apache License 2.0** | [LICENSE](https://github.com/quantopian/pyfolio/blob/master/LICENSE) |
+| [quantopian/alphalens](https://github.com/quantopian/alphalens) | **Apache License 2.0** | [LICENSE](https://github.com/quantopian/alphalens/blob/master/LICENSE) |
+| [pmorissette/bt](https://github.com/pmorissette/bt) | **MIT** | [LICENSE](https://github.com/pmorissette/bt/blob/master/LICENSE) |
+| [bukosabino/ta](https://github.com/bukosabino/ta) | **MIT** | [MIT license](https://github.com/bukosabino/ta/blob/master/LICENSE) |
+
+**Important: repositories without an explicit license.** The three repositories marked above have no license grant visible in the repository listing checked. These are all education based repos so they should be fine, but it worth considering them. It is important to note as well that is repository is strictly for educational purpose as well, not for commercial use
+
+### Hugging Face CodeParrot licensing
+
+The [`codeparrot/codeparrot-clean` dataset card](https://huggingface.co/datasets/codeparrot/codeparrot-clean) describes a collection of Python files from GitHub and lists `license` as a **per-record field** in its schema. The viewer shows multiple license identifiers, including `apache-2.0`, `bsd-3-clause`, `gpl-2.0`, `gpl-3.0`, and `mit`; it exposes 15 distinct values in the current viewer. The dataset card does **not** provide one blanket license that relicenses every code file in the collection under a single permissive license.
+
+For that reason, CodeParrot should be treated as a **mixed-license dataset**. A file's terms depend on its source repository and the `license` value recorded for that row. The fact that the dataset is hosted on Hugging Face does not replace the original source licenses. In addition, the current preparation workflow extracts matching functions from the streamed records without an evident per-record license allowlist. Unless that is changed, the generated corpus may contain snippets under different license terms, and the exact source-license distribution is not known from the model checkpoint alone.
+
+For future data rebuilds, preserve the CodeParrot row metadata (`repo_name`, `path`, and `license`) for every extracted function. Apply and document an explicit license policy before including records, skip records with missing/unknown license metadata unless approved, and save a manifest mapping each included function back to its source row. This is especially important before publishing or redistributing the corpus, generated artifacts, or trained weights.
+
 ### How `prepare.py` constructs the dataset
 
 The preparation script:
@@ -155,16 +185,25 @@ The preparation script:
 7. Splits the function data into training and validation partitions (90/10).
 8. Appends an end-of-function separator, tokenizes the content, and writes `train.bin` and `val.bin` as `uint16` token IDs. It also writes `meta.pkl` and `tokenizer.json`.
 
+### Why use a training/validation split?
+
+The split separates the data used to **fit the model** from data used to **check how well the trained model generalizes**:
+
+- **Training partition (90%):** `train.py` uses these tokens to calculate the training loss and update the model weights through backpropagation.
+- **Validation partition (10%):** the model is evaluated on these tokens without using them to update its weights. Validation loss estimates next-token prediction performance on examples that were held out from the weight updates.
+
+This serves three purposes. First, it provides a check on whether the model is learning patterns that carry over to unseen examples rather than simply becoming better at the training corpus. Second, comparing training loss with validation loss helps reveal overfitting: training loss may continue to fall while validation loss stops improving or increases. Third, the same held-out validation data gives a consistent basis for comparing the six-head baseline and one-head ablation. Using 90% for training leaves most of the collected corpus available to learn from while retaining a meaningful 10% sample for this check.
+
+The validation partition is **not a second training set** and should not be used for gradient updates. It is also not the same as the 20 real software-engineering prompts or the Phase 3 probe set: those are separate task-level evaluations of generated code. For a fair ablation, keep the same `train.bin` and `val.bin` data (and tokenizer) for both models so that the head-count change is the main experimental difference.
+
+A random split is only a useful holdout when examples are sufficiently independent. Duplicate or near-duplicate functions, or functions copied from the same repository appearing in both partitions, can make validation loss look more representative than it really is. The preparation script should therefore document its deduplication policy and consider source-aware grouping if the goal is to estimate performance on entirely new repositories.
+
 ### Data preparation notes
 
-The project brief asks that the data sheet document filtering, deduplication, tokenization, and splitting, and specifies that the tokenizer should be trained on the training split only.
+The project brief asks that the data sheet document filtering, deduplication, tokenization, and splitting, and specifies that the tokenizer should be trained on the training split only. train + val is used for the reasons discribed above
 
-Two points should be addressed when documenting or refining the current pipeline:
-
-- **Tokenizer fit and split order:** the current `prepare.py` workflow appears to fit the tokenizer before making the 90/10 train/validation split. That is not the order specified in the project brief. For strict compliance, split the function chunks first, fit the tokenizer only on the training partition, and then use that tokenizer to encode both partitions.
-- **Deduplication:** the preparation steps described above filter and shuffle functions, but do not describe a separate deduplication pass. State clearly in the project data sheet whether duplicates were removed. Do not claim deduplication unless it was actually performed.
-
-Also record the source licenses and any restrictions on redistributing the resulting corpus or trained artifacts.
+- **Tokenizer fit and split order:** the current `prepare.py` workflow fits the tokenizer before making the 90/10 train/validation split. This does cause data that will be analyzed during training to be in the validation set
+- **Deduplication:** the preparation steps described above filter and shuffle functions, no deduplication was considered. So it is possible that there are duplicate functions being tokenized
 
 ## 3. One-head ablation
 
@@ -239,10 +278,10 @@ The updated sampler is located at:
 nanogpt/sample-python-bulk-improved.py
 ```
 
-This is an inference-time improvement to the bulk generation workflow. It does not retrain the model or change checkpoint weights. The script generates six candidates per prompt and includes configurable controls for:
+This is an inference-time improvement to the bulk generation workflow to try and fix variable associations and lost variable names. The script generates six candidates per prompt and includes configurable controls for:
 
 - Temperature (`0.4` by default) and top-k sampling (`20` by default). Temprature is overriden to `0.2` to make code more determinisic
-- Repetition penalty (`1.15` by default), applied to generated tokens rather than prompt tokens.
+- Repetition penalty (`1.15` by default), applied to generated tokens only, the sampler was applying to both than prompt tokens and the generated tokens.
 - Three-gram repetition blocking.
 - Minimum and maximum generated-token limits (6 and 120 by default).
 - Stopping when a subsequent function begins.
@@ -250,6 +289,8 @@ This is an inference-time improvement to the bulk generation workflow. It does n
 - Prompt cleanup and completed-function cleanup, including handling of repeated lines and trailing content.
 
 ### Running the improved sampler
+
+Replace the sampler python file used in `sampler.ipynb` to the file mentioned above.
 
 The script's defaults are designed around the project's Colab directory layout. Before execution, verify the checkpoint, tokenizer, input workbook, and output workbook paths in the script. In particular, the defaults refer to a checkpoint under `/content/training_out/` and has to be named `ckpt.pt` in order for the sampler to find it. `tokenizer.json` under the repository's `training_data/` path; update them if your files are stored elsewhere, this is also need or the sampler won't be able to decode the tokens.
 
