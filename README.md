@@ -1,8 +1,8 @@
 # Python Chatbot — CS 5090
 
-A small GPT-style Python code language model trained from scratch with [nanoGPT](https://github.com/karpathy/nanoGPT). The project focuses on generating and completing Python code that uses Pandas and DataFrame operations. It was developed as the CS 5090 Project 1: **Build and Evaluate a Small Code Language Model**.
+A small GPT-style Python code language model trained from scratch with [nanoGPT](https://github.com/karpathy/nanoGPT). The project focuses on generating and completing Python code that uses Pandas and DataFrame operations. It was developed as the CS 5090 Project 1: **Build and Evaluate a Small Code Language Model**. Project discription is included as a pdf
 
-The repository contains a six-attention-head baseline model, a one-head ablation, a Google Colab/nanoGPT setup test, and a notebook for sampling model outputs against real software-engineering prompts.
+The repository contains a six-attention-head baseline model, a one-head ablation of that model, a Google Colab/nanoGPT setup test, and a notebook for sampling model outputs against real software-engineering prompts.
 
 > **Reproduction entry point:** Start with [`prerefined.ipynb`](prerefined.ipynb). This is the primary notebook and produces the six-head baseline. Run its cells in order; the notebook runs `training_data/prepare.py` and then `nanoGPT/train.py`. Do not use `oneHead.ipynb` as the baseline reproduction notebook: it is the one-head ablation.
 
@@ -19,28 +19,26 @@ The repository contains a six-attention-head baseline model, a one-head ablation
 
 ```text
 Python_Chatbot_CS5090/
-├── nanoGPT/
-│   ├── model.py                    # GPT model and attention implementation
-│   ├── train.py                    # Training and validation loop
-│   ├── sample.py                   # Generic nanoGPT sampler (used by setup test)
-│   ├── sample-python.py            # Single-prompt Python code sampling
-│   ├── sample-python-bulk.py       # Excel-based batch prompt sampling
-│   └── data/
-│       └── shakespeare_char/       # nanoGPT example dataset for test.ipynb
+├── nanoGPT/                              # nanoGPT implementation, configs, and example data
+├── nanogpt/
+│   └── sample-python-bulk-improved.py    # Improved inference-time bulk sampler
 ├── training_data/
-│   ├── prepare.py                  # Filters source code, trains tokenizer, builds train/val data
-│   ├── files/                      # Cloned source repositories scanned by prepare.py
-│   ├── Prompts/                    # Excel prompt workbooks used by sampler.ipynb
-│   ├── train.bin                   # Generated training token IDs
-│   ├── val.bin                     # Generated validation token IDs
-│   ├── meta.pkl                    # Vocabulary metadata for nanoGPT
-│   └── tokenizer.json              # Custom BPE tokenizer used for sampling
-├── prerefined.ipynb                # Primary six-head baseline
-├── oneHead.ipynb                   # One-head ablation
-├── sampler.ipynb                  # Inference and prompt-based evaluation
-├── test.ipynb                     # Google Colab/nanoGPT setup smoke test
-├── old/                            # Earlier project material
-└── .gitattributes                  # Git LFS rules for model and binary artifacts
+│   ├── prepare.py                        # Dataset preparation and tokenizer training
+│   ├── files/                            # Cloned source repositories
+│   └── Prompts/                          # Original 20-prompt workbooks
+├── data + results/
+│   ├── checkpoints and loss records/    # Checkpoints, logs, and loss workbook
+│   ├── training data/                    # train.bin, val.bin, meta.pkl, tokenizer.json
+│   ├── pandas_SWE_prompts_20_generated.xlsx
+│   ├── pandas_exposure_prompts_evaluated_20_prerefined.xlsx
+│   └── pandas_exposure_prompts_20_post_fixed_sample.xlsx
+├── prerefined.ipynb                      # Primary six-head baseline workflow
+├── oneHead.ipynb                         # One-head ablation workflow
+├── sampler.ipynb                         # Original sampling workflow
+├── test.ipynb                            # nanoGPT/Colab setup smoke test
+├── Project1.pdf                          # Project specification
+├── Project1_report.docx                  # Project report
+└── .gitattributes                        # Git LFS rules, where configured
 ```
 
 The `.bin`, `.pkl`, and tokenizer files under `training_data/` are generated artifacts. They are not the original source corpus. The original local code sources are placed under `training_data/files/`.
@@ -52,9 +50,10 @@ The intended reproduction path is to run [`prerefined.ipynb`](prerefined.ipynb) 
 ### Environment
 
 1. Open `prerefined.ipynb` in Google Colab.
-2. Select a GPU runtime. A GPU is strongly recommended for training; the course brief estimates a successful run may take approximately 2–6 GPU-hours, depending on the environment.
-3. Run the notebook cells in their existing order. The notebook contains the setup, data preparation, and model-training steps.
-4. Keep the same repository version, source data, tokenizer, and configuration when reproducing the run.
+2. Select CPU only runtime for making the training data, as that is not gpu bound, saving your gpu hours
+3. Select a GPU runtime. A GPU is required for training; taking around an hour for the training to finsh per model
+4. Run the notebook cells in their existing order. The notebook contains the setup, data preparation, and model-training steps.
+5. Keep the same repository version, source data, tokenizer, and configuration when reproducing the run.
 
 ### What the baseline notebook runs
 
@@ -91,10 +90,10 @@ The project brief recommends fitting the tokenizer using the training split only
 
 | Artifact | Location | Purpose |
 |---|---|---|
-| Training tokens | `training_data/train.bin` | Tokenized examples used for model training. |
-| Validation tokens | `training_data/val.bin` | Held-out examples used for validation loss. |
-| Vocabulary metadata | `training_data/meta.pkl` | Token/vocabulary mappings expected by nanoGPT. |
-| BPE tokenizer | `training_data/tokenizer.json` | Tokenizer used by the custom Python samplers. |
+| Training tokens | `data + results/training data/train.bin` | Tokenized examples used for model training. |
+| Validation tokens | `data + results/training data/val.bin` | Held-out examples used for validation loss. |
+| Vocabulary metadata | `data + results/training data/meta.pkl` | Token/vocabulary mappings expected by nanoGPT. |
+| BPE tokenizer | `data + results/training data/tokenizer.json` | Tokenizer used by the custom Python samplers. |
 | Model checkpoint | `training_out/ckpt.pt` in the Colab workflow | Trained model loaded during sampling. |
 
 Keep the checkpoint, tokenizer, and prepared dataset from the same run together. A checkpoint trained with one tokenizer cannot safely be sampled using a different tokenizer vocabulary.
@@ -137,46 +136,11 @@ The notebook setup clones the following repositories into `training_data/files/`
 - [pmorissette/bt](https://github.com/pmorissette/bt)
 - [bukosabino/ta](https://github.com/bukosabino/ta)
 
-The notebook clones these repositories from their default branches. Their contents can change over time; for strict reproducibility, record the commit SHA for each source repository.
+The notebook clones these repositories from their default branches. Their contents can change over time; for strict reproducibility, record the commit SHA for each source repository. These repos were lasted pulled on **October 31st, 2026**
 
 ### Hugging Face dataset
 
-In addition to the local repositories, `training_data/prepare.py` streams the **training split** of [`codeparrot/codeparrot-clean`](https://huggingface.co/datasets/codeparrot/codeparrot-clean) through the Hugging Face `datasets` library. The script extracts additional Pandas-related functions until it reaches a target of 400,000,000 characters (the script comments estimate this at roughly 100 million tokens). The stream can fail or be interrupted, so inspect the preparation output and record the final counts rather than assuming the full remote corpus was collected.
-
-There are two distinct splits to keep straight:
-
-- **CodeParrot's upstream split:** the project script requests the dataset's `train` split from Hugging Face.
-- **This project's 90/10 split:** after collecting and filtering code from the local repositories and CodeParrot, `prepare.py` creates its own training and validation partitions. The explanation below refers to this project-level split, not to the upstream Hugging Face split.
-
-### Third-party source licenses
-
-The table below records the license information visible in each upstream repository or its license/metadata file when checked on **October 31, 2026**. The licenses apply to the upstream source projects, not automatically to this repository as a whole. The notebook clones current default branches, so the license and source content at the exact commit used for a training run should be saved alongside the experiment.
-
-| Source repository | License found | License / source reference |
-|---|---|---|
-| [leetlab11/Introduction-to-Pandas](https://github.com/leetlab11/Introduction-to-Pandas) | **No explicit repository license found** | [Repository root](https://github.com/leetlab11/Introduction-to-Pandas). No `LICENSE` file or license declaration was visible in the root listing when checked. |
-| [Aayush-kotwani/Pandas-masterclass](https://github.com/Aayush-kotwani/Pandas-masterclass) | **No explicit repository license found** | [Repository root](https://github.com/Aayush-kotwani/Pandas-masterclass). No `LICENSE` file or license declaration was visible in the root listing when checked. |
-| [codebasics/py](https://github.com/codebasics/py) | **No explicit repository license found** | [Repository root](https://github.com/codebasics/py). No `LICENSE` file or license declaration was visible in the root listing when checked. |
-| [guipsamora/pandas_exercises](https://github.com/guipsamora/pandas_exercises) | **BSD 3-Clause** | [LICENSE](https://github.com/guipsamora/pandas_exercises/blob/master/LICENSE) |
-| [jvns/pandas-cookbook](https://github.com/jvns/pandas-cookbook) | **CC BY-SA 4.0** | [License statement in README](https://github.com/jvns/pandas-cookbook#license) |
-| [stefan-jansen/zipline-reloaded](https://github.com/stefan-jansen/zipline-reloaded) | **Apache License 2.0** | [LICENSE](https://github.com/stefan-jansen/zipline-reloaded/blob/main/LICENSE) and [package metadata](https://github.com/stefan-jansen/zipline-reloaded/blob/main/pyproject.toml) |
-| [twopirllc/pandas-ta](https://github.com/twopirllc/pandas-ta) | **MIT** | [LICENCE](https://github.com/aarigs/pandas-ta?tab=MIT-1-ov-file) |
-| [polakowo/vectorbt](https://github.com/polakowo/vectorbt) | **Apache License 2.0 + Commons Clause** | [LICENSE.md](https://github.com/polakowo/vectorbt/blob/master/LICENSE.md). The Commons Clause adds a restriction on selling the software or a product/service whose value derives substantially from it. |
-| [ranaroussi/yfinance](https://github.com/ranaroussi/yfinance) | **Apache License 2.0** | [LICENSE.txt](https://github.com/ranaroussi/yfinance/blob/main/LICENSE.txt); the [project README](https://github.com/ranaroussi/yfinance#legal-stuff) identifies the Apache license. |
-| [quantopian/pyfolio](https://github.com/quantopian/pyfolio) | **Apache License 2.0** | [LICENSE](https://github.com/quantopian/pyfolio/blob/master/LICENSE) |
-| [quantopian/alphalens](https://github.com/quantopian/alphalens) | **Apache License 2.0** | [LICENSE](https://github.com/quantopian/alphalens/blob/master/LICENSE) |
-| [pmorissette/bt](https://github.com/pmorissette/bt) | **MIT** | [LICENSE](https://github.com/pmorissette/bt/blob/master/LICENSE) |
-| [bukosabino/ta](https://github.com/bukosabino/ta) | **MIT** | [MIT license](https://github.com/bukosabino/ta/blob/master/LICENSE) |
-
-**Important: repositories without an explicit license.** The three repositories marked above have no license grant visible in the repository listing checked. They are all learning based repositories so they should be ok. This project is **not for redistribution**
-
-### Hugging Face CodeParrot licensing
-
-The [`codeparrot/codeparrot-clean` dataset card](https://huggingface.co/datasets/codeparrot/codeparrot-clean) describes a collection of Python files from GitHub and lists `license` as a **per-record field** in its schema. The viewer shows multiple license identifiers, including `apache-2.0`, `bsd-3-clause`, `gpl-2.0`, `gpl-3.0`, and `mit`; it exposes 15 distinct values in the current viewer. The dataset card does **not** provide one blanket license that relicenses every code file in the collection under a single permissive license.
-
-For that reason, CodeParrot should be treated as a **mixed-license dataset**. A file's terms depend on its source repository and the `license` value recorded for that row. The fact that the dataset is hosted on Hugging Face does not replace the original source licenses. In addition, the current preparation workflow extracts matching functions from the streamed records without an evident per-record license allowlist. Unless that is changed, the generated corpus may contain snippets under different license terms, and the exact source-license distribution is not known from the model checkpoint alone.
-
-For future data rebuilds, preserve the CodeParrot row metadata (`repo_name`, `path`, and `license`) for every extracted function. Apply and document an explicit license policy before including records, skip records with missing/unknown license metadata unless approved, and save a manifest mapping each included function back to its source row. This is especially important before publishing or redistributing the corpus, generated artifacts, or trained weights.
+In addition to the local repositories, `training_data/prepare.py` streams the training split of [`codeparrot/codeparrot-clean`](https://huggingface.co/datasets/codeparrot/codeparrot-clean) through the Hugging Face `datasets` library. The script extracts additional Pandas-related functions until it reaches a target of 400,000,000 characters (the script comments estimate this at roughly 100 million tokens). The stream can fail or be interrupted, so inspect the preparation output and record the final counts rather than assuming the full remote corpus was collected.
 
 ### How `prepare.py` constructs the dataset
 
@@ -191,29 +155,16 @@ The preparation script:
 7. Splits the function data into training and validation partitions (90/10).
 8. Appends an end-of-function separator, tokenizes the content, and writes `train.bin` and `val.bin` as `uint16` token IDs. It also writes `meta.pkl` and `tokenizer.json`.
 
-### Why use a training/validation split?
-
-The split separates the data used to **fit the model** from data used to **check how well the trained model generalizes**:
-
-- **Training partition (90%):** `train.py` uses these tokens to calculate the training loss and update the model weights through backpropagation.
-- **Validation partition (10%):** the model is evaluated on these tokens without using them to update its weights. Validation loss estimates next-token prediction performance on examples that were held out from the weight updates.
-
-This serves three purposes. First, it provides a check on whether the model is learning patterns that carry over to unseen examples rather than simply becoming better at the training corpus. Second, comparing training loss with validation loss helps reveal overfitting: training loss may continue to fall while validation loss stops improving or increases. Third, the same held-out validation data gives a consistent basis for comparing the six-head baseline and one-head ablation. Using 90% for training leaves most of the collected corpus available to learn from while retaining a meaningful 10% sample for this check.
-
-The validation partition is **not a second training set** and should not be used for gradient updates. It is also not the same as the 20 real software-engineering prompts or the Phase 3 probe set: those are separate task-level evaluations of generated code. For a fair ablation, keep the same `train.bin` and `val.bin` data (and tokenizer) for both models so that the head-count change is the main experimental difference.
-
-A random split is only a useful holdout when examples are sufficiently independent. Duplicate or near-duplicate functions, or functions copied from the same repository appearing in both partitions, can make validation loss look more representative than it really is. The preparation script should therefore document its deduplication policy and consider source-aware grouping if the goal is to estimate performance on entirely new repositories.
-
 ### Data preparation notes
 
 The project brief asks that the data sheet document filtering, deduplication, tokenization, and splitting, and specifies that the tokenizer should be trained on the training split only.
 
 Two points should be addressed when documenting or refining the current pipeline:
 
-- **Tokenizer fit and split order:** the current `prepare.py` workflow appears to fit the tokenizer before making the 90/10 train/validation split. That is not the order specified in the project brief and weakens the holdout: although validation tokens are not used for gradient updates, the tokenizer vocabulary/merges have already been influenced by validation text. For strict compliance, split the function chunks first, fit the tokenizer only on the training partition, and then use that tokenizer to encode both partitions.
+- **Tokenizer fit and split order:** the current `prepare.py` workflow appears to fit the tokenizer before making the 90/10 train/validation split. That is not the order specified in the project brief. For strict compliance, split the function chunks first, fit the tokenizer only on the training partition, and then use that tokenizer to encode both partitions.
 - **Deduplication:** the preparation steps described above filter and shuffle functions, but do not describe a separate deduplication pass. State clearly in the project data sheet whether duplicates were removed. Do not claim deduplication unless it was actually performed.
 
-Use the [third-party source license inventory](#third-party-source-licenses) and [CodeParrot licensing notes](#hugging-face-codeparrot-licensing) when recording source provenance and deciding whether any corpus or trained artifact can be redistributed.
+Also record the source licenses and any restrictions on redistributing the resulting corpus or trained artifacts.
 
 ## 3. One-head ablation
 
@@ -280,70 +231,59 @@ It does **not** test the Pandas training corpus, the six-head model's code-gener
 
 The Pandas model is evaluated through the prompt workflows in `sampler.ipynb` and the project's Phase 2/3 evaluation records.
 
-## 6. Evaluation and project evidence
+## 6. Improved bulk sampler
 
-This repo represents a course project that is organized into four phases. Model quality alone is not the target; the project is assessed on understanding, experimental design, evidence, analysis, and reproducibility.
+The updated sampler is located at:
 
-### Phase 1 — Build and understand
+```text
+nanogpt/sample-python-bulk-improved.py
+```
 
-- Reproducible six-head baseline and one-head ablation.
-- Model architecture/configuration and training environment.
-- Data filtering, deduplication status, tokenizer training, and train/validation split details.
-- Training and validation loss results, including a loss curve.
-- Ablation prediction, exact change, validation-loss comparison, and side-by-side generation example.
-- Limitations and data/licensing considerations.
+This is an inference-time improvement to the bulk generation workflow. It does not retrain the model or change checkpoint weights. The script generates six candidates per prompt and includes configurable controls for:
 
-### Phase 2 — Use the model on 20 real inputs
+- Temperature (`0.4` by default) and top-k sampling (`20` by default). Temprature is overriden to `0.2` to make code more determinisic
+- Repetition penalty (`1.15` by default), applied to generated tokens rather than prompt tokens.
+- Three-gram repetition blocking.
+- Minimum and maximum generated-token limits (6 and 120 by default).
+- Stopping when a subsequent function begins.
+- Optional variable-association swapping: inferred parameter/local-variable roles are temporarily normalized during generation and restored afterward.
+- Prompt cleanup and completed-function cleanup, including handling of repeated lines and trailing content.
 
-- The source and purpose of the 20 prompts.
-- The software-engineering task being attempted (in this repository, Python/Pandas code completion).
-- The meaning of an acceptable output for that task.
-- Accept-as-is, accept-after-editing, and reject counts.
-- The best, worst, and near-miss examples with short explanations.
-- A brief assessment of where the model saved time and where verification cost more than writing the code manually.
+### Running the improved sampler
 
-### Phase 3 — Evaluate and break
+The script's defaults are designed around the project's Colab directory layout. Before execution, verify the checkpoint, tokenizer, input workbook, and output workbook paths in the script. In particular, the defaults refer to a checkpoint under `/content/training_out/` and has to be named `ckpt.pt` in order for the sampler to find it. `tokenizer.json` under the repository's `training_data/` path; update them if your files are stored elsewhere, this is also need or the sampler won't be able to decode the tokens.
 
-sample approximately 20–30 probes designed to expose model weaknesses. Include ordinary prompts and targeted cases such as misleading comments or names, long context, security-related prompts, prompt variations, and prompts similar to the training data.
+Use the same checkpoint and tokenizer pair used for the corresponding model run. Keep the original prompt workbook unchanged and write generated results to a separate output workbook when preserving evaluation traceability matters.
 
-Record at least 10 failure instances in a CSV. Use these category names exactly:
+The improved sampler should be evaluated with the same prompts and comparable sampling settings as the original sampler. Record the exact script version and settings used for each before/after comparison.
 
-| Category | Meaning |
+## 7. Current experiment workbooks
+
+The current repository includes these result files under `data + results/`:
+
+| File | Purpose |
 |---|---|
-| `syntax` | Output does not parse. |
-| `invented-api` | Calls an API or function that does not exist. |
-| `wrong-logic` | Parses/runs but produces the wrong behavior. |
-| `insecure` | Introduces a security weakness. |
-| `memorised` | Reproduces training data nearly verbatim. |
-| `prompt-sensitive` | A small rewording changes the answer substantially. |
-| `context-ignored` | Ignores information clearly present in the input. |
-| `other` | Use only when none of the above applies; explain clearly. |
+| `pandas_SWE_prompts_20_generated.xlsx` | Generated candidates and manual judgments for the 20 standard Pandas software-engineering prompts. |
+| `pandas_exposure_prompts_evaluated_20_prerefined.xlsx` | Prerefinement exposure-probe evaluations. |
+| `pandas_exposure_prompts_20_post_fixed_sample.xlsx` | Post-refinement exposure-probe generations. |
+| `checkpoints and loss records/training_step_losses_and_charts.xlsx` | Training-step loss records and charts. |
 
-this repo goes over 4 in 20 different probing prompts:
+The standard-prompt workbook records 20 prompts and six candidates per prompt. The reviewed outcomes are 4 accepted as-is, 10 accepted after editing, and 6 rejected. These are manual review labels, not proof of correctness across all inputs or Pandas versions.
 
-prompt-sensitive
-unkown variable names
-invented-api
-syntax
-
-### Phase 4 — Improve and re-evaluate
-
-the sampler is improved, noted as `sample-python-bulk-improved.py` in the nanogpt folder
-
-any of the required files can be found in `data + results`
+For the exposure evaluation, distinguish manually assigned severity and unit-test-detectability judgments from experimentally measured test coverage. Do not describe a failure as caught by a unit test unless the test was implemented and run.
 
 ## Reproducibility notes
 
 - **Use the correct baseline notebook:** `prerefined.ipynb` is the six-head baseline; `oneHead.ipynb` is the one-head ablation.
 - **Run the notebook in order:** the baseline notebook orchestrates data preparation followed by model training. Sampling is a separate inference step.
-- **Colab paths:** the notebooks and sampling scripts use paths such as `/content/Python_Chatbot_CS5090` and `/content/training_out`. Update paths when moving to a local environment. Also make sure to add `tokenizer.json` to `/content/Python_Chatbot_CS5090/training_data` before runing a checkpoint
+- **Colab paths:** the notebooks and sampling scripts use paths such as `/content/Python_Chatbot_CS5090` and `/content/training_out`. Update paths when moving to a local environment.
 - **Checkpoint name:** the sampling scripts load `ckpt.pt`; a notebook note referring to `cpt.pt` is a typo.
 - **Tokenizer/checkpoint pairing:** always use the `tokenizer.json` generated for the same model run.
 - **External data can change:** the source repositories are cloned from their current default branches and CodeParrot is streamed at runtime. Record source commit IDs and dataset/preparation details.
 - **No dedicated unit-test suite is documented:** `test.ipynb` verifies the Colab/nanoGPT path; it is not a correctness test for generated Pandas code.
 - **Dependencies and versions:** record the Python, PyTorch, CUDA, `datasets`, `tokenizers`, and other package versions used for each reproduction. A pinned dependency file is preferable for repeatability.
-- **Git LFS:** `.gitattributes` marks model and binary artifacts for Git LFS. Install Git LFS before cloning or retrieving large tracked artifacts.
+- **Large artifacts:** check `.gitattributes` and the repository's GitHub settings to determine whether large checkpoints or binary artifacts are stored with Git LFS. Install Git LFS if the repository uses it.
 
 ## Acknowledgements
 
-This project uses/adapts [nanoGPT](https://github.com/karpathy/nanoGPT), public Python/Pandas and quantitative-finance repositories, and the Hugging Face [CodeParrot Clean dataset](https://huggingface.co/datasets/codeparrot/codeparrot-clean). Third-party components and source snippets remain subject to their respective licenses. Review the [license inventory](#third-party-source-licenses) and [CodeParrot licensing notes](#hugging-face-codeparrot-licensing) before redistributing source data, derived corpora, or model artifacts.
+This project uses/adapts [nanoGPT](https://github.com/karpathy/nanoGPT), public Python/Pandas and quantitative-finance repositories, and the Hugging Face [CodeParrot Clean dataset](https://huggingface.co/datasets/codeparrot/codeparrot-clean). Consult the upstream licenses and dataset terms before redistributing source data, derived corpora, or model artifacts.
